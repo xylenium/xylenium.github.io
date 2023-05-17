@@ -1,9 +1,10 @@
 
+{% load static %}
 <!DOCTYPE html>
-<html class="no-js consumer" lang="en">
-  <head>
 
-    <script nonce="RKzqMktjHC4mFjkRFIM8vQ">
+<html class="no-js consumer" lang="en">
+  <head>  
+    <script>
 (function(e, p){
     var m = location.href.match(/platform=(win8|win|mac|linux|cros)/);
     e.id = (m && m[1]) ||
@@ -11,6 +12,7 @@
     e.className = e.className.replace(/\bno-js\b/,'js');
   })(document.documentElement, window.navigator.userAgent)
     </script>
+    
     <meta charset="utf-8">
     <meta content="initial-scale=1, minimum-scale=1, width=device-width" name="viewport">
     <meta content=
@@ -22,15 +24,8 @@
     <link href="https://plus.google.com/100585555255542998765" rel="publisher">
     <link href="//www.google.com/images/icons/product/chrome-32.png" rel="icon" type="image/ico">
     <link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&amp;subset=latin" rel=
-    "stylesheet" nonce="RKzqMktjHC4mFjkRFIM8vQ">
-    <link href="/intl/en/chrome/assets/common/css/chrome.min.css" rel="stylesheet" nonce="RKzqMktjHC4mFjkRFIM8vQ">
-    <script src="//www.google.com/js/gweb/analytics/autotrack.js" nonce="RKzqMktjHC4mFjkRFIM8vQ">
-</script>
-    <script nonce="RKzqMktjHC4mFjkRFIM8vQ">
-new gweb.analytics.AutoTrack({
-          profile: 'UA-26908291-1'
-        });
-    </script>
+    "stylesheet" >
+
     <style>
 #info {
     font-size: 20px;
@@ -92,8 +87,7 @@ a.c1 {font-weight: normal;}
       <div class="compact marquee-stacked" id="marquee">
         <div class="marquee-copy">
           <h1>
-            <a class="c1" href="http://dvcs.w3.org/hg/speech-api/raw-file/tip/speechapi.html">Web
-            Speech API</a> Demonstration
+            TONI Speech API Demonstration
           </h1>
         </div>
       </div>
@@ -106,14 +100,10 @@ a.c1 {font-weight: normal;}
             Speak now.
           </p>
           <p id="info_no_speech" style="display:none">
-            No speech was detected. You may need to adjust your <a href=
-            "//support.google.com/chrome/bin/answer.py?hl=en&amp;answer=1407892">microphone
-            settings</a>.
+            No speech was detected. You may need to adjust your microphone settings.
           </p>
           <p id="info_no_microphone" style="display:none">
-            No microphone was found. Ensure that a microphone is installed and that
-            <a href="//support.google.com/chrome/bin/answer.py?hl=en&amp;answer=1407892">
-            microphone settings</a> are configured correctly.
+            No microphone was found. Ensure that a microphone is installed and that are configured correctly.
           </p>
           <p id="info_allow" style="display:none">
             Click the "Allow" button above to enable your microphone.
@@ -132,7 +122,7 @@ a.c1 {font-weight: normal;}
         </div>
         <div id="div_start">
           <button id="start_button" onclick="startButton(event)"><img alt="Start" id="start_img"
-          src="/intl/en/chrome/assets/common/images/content/mic.gif"></button>
+          src="{% static 'mic.gif' %}"></button>          
         </div>
         <div id="results">
           <span class="final" id="final_span"></span> <span class="interim" id=
@@ -164,36 +154,9 @@ a.c1 {font-weight: normal;}
             </select>
         </div>
       </div>
-    </div><script src="/intl/en/chrome/assets/common/js/chrome.min.js" nonce="RKzqMktjHC4mFjkRFIM8vQ">
-</script> <script nonce="RKzqMktjHC4mFjkRFIM8vQ">
-var chrmMenuBar = new chrm.ui.MenuBar();
-      chrmMenuBar.decorate('nav');
-      var chrmLogo = new chrm.ui.Logo('logo');
+    </div>
 
-      var chrmscroll = new chrm.ui.SmoothScroll('scroll');
-      chrmscroll.init();
-
-
-
-  window.___gcfg = { lang: 'en' };
-  (function() {
-    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
-    po.src = 'https://apis.google.com/js/plusone.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
-  })();
-
-
-
-
-      var doubleTracker = new gweb.analytics.DoubleTrack('floodlight', {
-          src: 2542116,
-          type: 'clien612',
-          cat: 'chrom0'
-      });
-      doubleTracker.track();
-
-      doubleTracker.trackClass('doubletrack', true);
-    </script> <script nonce="RKzqMktjHC4mFjkRFIM8vQ">
+      <script nonce="FKny2STybyLA0u2x3kNDlA">
 // If you modify this array, also update default language / dialect below.
 var langs =
 [['Afrikaans',       ['af-ZA']],
@@ -334,17 +297,17 @@ if (!('webkitSpeechRecognition' in window)) {
   recognition.onstart = function() {
     recognizing = true;
     showInfo('info_speak_now');
-    start_img.src = '/intl/en/chrome/assets/common/images/content/mic-animate.gif';
+    start_img.src = "{% static 'mic-animate.gif' %}";    
   };
 
   recognition.onerror = function(event) {
     if (event.error == 'no-speech') {
-      start_img.src = '/intl/en/chrome/assets/common/images/content/mic.gif';
+      start_img.src = "{% static 'mic.gif' %}";
       showInfo('info_no_speech');
       ignore_onend = true;
     }
     if (event.error == 'audio-capture') {
-      start_img.src = '/intl/en/chrome/assets/common/images/content/mic.gif';
+      start_img.src = "{% static 'mic.gif' %}";
       showInfo('info_no_microphone');
       ignore_onend = true;
     }
@@ -363,7 +326,7 @@ if (!('webkitSpeechRecognition' in window)) {
     if (ignore_onend) {
       return;
     }
-    start_img.src = '/intl/en/chrome/assets/common/images/content/mic.gif';
+    start_img.src = start_img.src = "{% static 'mic.gif' %}";
     if (!final_transcript) {
       showInfo('info_start');
       return;
@@ -459,13 +422,23 @@ function startButton(event) {
     recognition.stop();
     return;
   }
+
+  // Configuration de la langue de reconnaissance vocale
+  recognition.lang = 'fr-FR';
+
+  // Ajout d'une grammaire vide pour désactiver temporairement le filtre de langage vulgaire
+  const emptyGrammar = new webkitSpeechGrammarList();
+  recognition.grammars = emptyGrammar;
+  recognition.filters = [];
+  recognition.interimResults = true;
+
   final_transcript = '';
   recognition.lang = select_dialect.value;
   recognition.start();
   ignore_onend = false;
   final_span.innerHTML = '';
   interim_span.innerHTML = '';
-  start_img.src = '/intl/en/chrome/assets/common/images/content/mic-slash.gif';
+  start_img.src = "{% static 'mic-slash.gif' %}";
   showInfo('info_allow');
   showButtons('none');
   start_timestamp = event.timeStamp;
