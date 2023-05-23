@@ -275,6 +275,7 @@ function updateCountry() {
     select_dialect.options.add(new Option(list[i][1], list[i][0]));
   }
   select_dialect.style.visibility = list[1].length == 1 ? 'hidden' : 'visible';
+  startButton();
 }
 
 var create_email = false;
@@ -317,28 +318,7 @@ if (!('webkitSpeechRecognition' in window)) {
     }
   };
 
-  recognition.onend = function() {
-    recognizing = false;
-    if (ignore_onend) {
-      return;
-    }
-    start_img.src = '/intl/en/chrome/assets/common/images/content/mic.gif';
-    if (!final_transcript) {
-      showInfo('info_start');
-      return;
-    }
-    showInfo('');
-    if (window.getSelection) {
-      window.getSelection().removeAllRanges();
-      var range = document.createRange();
-      range.selectNode(document.getElementById('final_span'));
-      window.getSelection().addRange(range);
-    }
-    if (create_email) {
-      create_email = false;
-      createEmail();
-    }
-  };
+  recognition.onend = function() {};
 
   recognition.onresult = function(event) {
     var interim_transcript = '';
