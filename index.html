@@ -1,7 +1,17 @@
  <!DOCTYPE html>
 <html class="no-js consumer" lang="en">
   <head>
-    <script src="https://cdn.auth0.com/js/auth0/9.5/auth0.min.js"></script>
+   <script src="https://cdn.auth0.com/js/auth0/9.5/auth0.min.js"></script>
+   <script>
+        // Configuration de Auth0
+        var webAuth = new auth0.WebAuth({
+            domain: 'dev-gmtif7w2wce1zyvx.us.auth0.com',
+            clientID: '1Xr3arVCfoAEbc6TytfLWk0cgqhPBRxV',
+            redirectUri: 'https://xylenium.github.io/',
+            responseType: 'token id_token',
+            scope: 'openid profile'
+        });
+    </script>   
     <script>
 (function(e, p){
     var m = location.href.match(/platform=(win8|win|mac|linux|cros)/);
@@ -72,6 +82,12 @@ a.c1 {font-weight: normal;}
     </style>
   </head>
   <body class="" id="grid">
+    <button onclick="login();">Login</button>
+    <script>
+      function login() {
+        webAuth.authorize();
+      }
+    </script>
     <p id="fastT"></p>
     <p id="longT"></p>
     <div class="browser-landing" id="main">
