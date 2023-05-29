@@ -1,17 +1,8 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html class="no-js consumer" lang="en">
   <head>
     <script src="https://cdn.auth0.com/js/auth0/9.5/auth0.min.js"></script>
     <script>
-      var webAuth = new auth0.WebAuth({
-        domain: '<DOMAIN>',
-        clientID: '<CLIENT_ID>',
-        responseType: 'token id_token',
-        audience: 'https://<DOMAIN>/userinfo',
-        scope: 'openid profile',
-        redirectUri: window.location.href
-      });
-
 (function(e, p){
     var m = location.href.match(/platform=(win8|win|mac|linux|cros)/);
     e.id = (m && m[1]) ||
@@ -81,12 +72,6 @@ a.c1 {font-weight: normal;}
     </style>
   </head>
   <body class="" id="grid">
-    <button onclick="login();">Login</button>
-    <script>
-      function login() {
-        webAuth.authorize();
-      }
-    </script>
     <p id="fastT"></p>
     <p id="longT"></p>
     <div class="browser-landing" id="main">
