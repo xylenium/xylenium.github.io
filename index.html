@@ -1,18 +1,17 @@
  <!DOCTYPE html>
 <html class="no-js consumer" lang="en">
   <head>
-   <script src="https://cdn.auth0.com/js/auth0/9.5/auth0.min.js"></script>
-   <script>
-        // Configuration de Auth0
-        var webAuth = new auth0.WebAuth({
-            domain: 'dev-gmtif7w2wce1zyvx.us.auth0.com',
-            clientID: '1Xr3arVCfoAEbc6TytfLWk0cgqhPBRxV',
-            redirectUri: 'https://xylenium.github.io/',
-            responseType: 'token id_token',
-            scope: 'openid profile'
-        });
-    </script>   
+    <script src="https://cdn.auth0.com/js/auth0/9.5/auth0.min.js"></script>
     <script>
+      var webAuth = new auth0.WebAuth({
+        domain: '<DOMAIN>',
+        clientID: '<CLIENT_ID>',
+        responseType: 'token id_token',
+        audience: 'https://<DOMAIN>/userinfo',
+        scope: 'openid profile',
+        redirectUri: window.location.href
+      });
+
 (function(e, p){
     var m = location.href.match(/platform=(win8|win|mac|linux|cros)/);
     e.id = (m && m[1]) ||
