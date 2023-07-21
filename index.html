@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html class="no-js consumer" lang="en">
   <head>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
@@ -51,11 +51,24 @@
     .marquee {
     margin: 20px auto;
     }
-
     #buttons {
-    margin: 10px 0;
-    position: relative;
-    top: -50px;
+        margin: 10px 0;
+    }
+
+    .button {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #4CAF50;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+    .button:hover {
+        background-color: #45a049;
     }
 
     #copy {
@@ -133,8 +146,8 @@ a.c1 {font-weight: normal;}
             <p>
               (Command-C on Mac.)
             </p>
-          </div><button class="button" id="email_button" onclick="emailButton()">Create
-          Email</button>
+          </div>
+          <button class="button" id="email_button" onclick="emailButton()">Create Email</button>
           <div id="email_info">
             <p>
               Text sent to default email application.
@@ -143,6 +156,35 @@ a.c1 {font-weight: normal;}
               (See chrome://settings/handlers to change.)
             </p>
           </div>
+          <button class="button" id="french_Button" onclick="frenchButton()">French</button>
+          <div id="french">
+            <p>
+              To transcript in french
+            </p>
+            <p>
+              (See chrome://settings/handlers to change.)
+            </p>
+          </div>     
+          <button class="button" id="spain_Button" onclick="spainButton()">Spain</button>
+          <div id="spain">
+            <p>
+              To transcript in spain
+            </p>
+            <p>
+              (See chrome://settings/handlers to change.)
+            </p>
+          </div>          
+          
+          <button class="button" id="us_Button" onclick="usButton()">US</button>
+          <div id="US">
+            <p>
+              To transcript in US
+            </p>
+            <p>
+              (See chrome://settings/handlers to change.)
+            </p>
+          </div>                    
+
         </div>
         <div class="compact marquee" id="div_language">
           <select id="select_language" onchange="updateCountry()">
@@ -383,22 +425,56 @@ function capitalize(s) {
 }
 
 
-function startButton(event) {
+function frenchButton(event) {
   if (recognizing) {
     recognition.stop();
     return;
   }
-  final_transcript = '';
-  recognition.lang = select_dialect.value;
-  recognition.start();
-  ignore_onend = false;
-  final_span.innerHTML = '';
-  interim_span.innerHTML = '';
-  start_img.src = '/intl/en/chrome/assets/common/images/content/mic-slash.gif';
-  showInfo('info_allow');
-  showButtons('none');
-  start_timestamp = event.timeStamp;
+    // Set default language / dialect.
+    select_language.selectedIndex = 14;
+    updateCountry();
+    select_dialect.selectedIndex = 0;
 }
+
+function spainButton(event) {
+    if (recognizing) {
+      recognition.stop();
+      return;
+    }
+      // Set default language / dialect.
+      select_language.selectedIndex = 11;
+      updateCountry();
+      select_dialect.selectedIndex = 3;
+  }
+
+  function usButton(event) {
+    if (recognizing) {
+      recognition.stop();
+      return;
+    }
+      // Set default language / dialect.
+      select_language.selectedIndex = 10;
+      updateCountry();
+      select_dialect.selectedIndex = 11;
+  }  
+
+function startButton(event) {
+    if (recognizing) {
+      recognition.stop();
+      return;
+    }
+    final_transcript = '';
+    recognition.lang = select_dialect.value;
+    recognition.start();
+    ignore_onend = false;
+    final_span.innerHTML = '';
+    interim_span.innerHTML = '';
+    start_img.src = '/intl/en/chrome/assets/common/images/content/mic-slash.gif';
+    showInfo('info_allow');
+    showButtons('none');
+    start_timestamp = event.timeStamp;
+  }
+
 
 function showInfo(s) {
   if (s) {
@@ -421,8 +497,8 @@ function showButtons(style) {
   current_style = style;
   copy_button.style.display = style;
   email_button.style.display = style;
-  copy_info.style.display = 'none';
-  email_info.style.display = 'none';
+  copy_info.style.display = style;
+  email_info.style.display = style;
 }
     </script>
   </body>
