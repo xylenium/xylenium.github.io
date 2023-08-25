@@ -498,6 +498,25 @@ document.addEventListener('DOMContentLoaded', function() {
   button.click();
 });
 
+      
+// Obtenir la valeur texte initiale
+var valeurTexteInitiale = element.textContent;
+
+// Définir une fonction pour vérifier si la valeur texte a changé
+function verifierChangementValeurTexte() {
+  // Obtenir la valeur texte actuelle
+  var valeurTexteActuelle = element.textContent;
+
+  // Vérifier si la valeur texte a changé
+  if (valeurTexteActuelle === valeurTexteInitiale) {
+    // Rafraîchir la page
+    location.reload();
+  }
+}
+
+// Appeler la fonction de vérification toutes les 3 secondes
+setInterval(verifierChangementValeurTexte, 3000);      
+
 var current_style;
 function showButtons(style) {
   if (style == current_style) {
