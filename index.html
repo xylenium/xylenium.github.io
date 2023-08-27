@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html class="no-js consumer" lang="en">
   <head>
@@ -373,23 +374,27 @@ if (!('webkitSpeechRecognition' in window)) {
       return;
     }
     for (var i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          interim_transcript = event.results[i][0].transcript; 
-          document.querySelector('#fastT').textContent = interim_transcript
+      if (event.results[i].isFinal) {
+        interim_transcript = event.results[i][0].transcript; 
+        document.querySelector('#longT').textContent = interim_transcript;
+        setTimeout(function() {
           window.location.reload();
+        }, 100); 
+      } else {
+        interim_transcript += event.results[i][0].transcript;
+        
+        var words = interim_transcript.split(' ');
+        if (words.length > 150) {
+          recognition.stop();
         }
-        else{ interim_transcript += event.results[i][0].transcript;
-
-
-          words = interim_transcript.split(' ');
-
-          if (words.length > 25) {
-            recognition.stop()
-          }
+        
+        if (words.length % 5 === 0) {
+          document.querySelector('#fastT').textContent = interim_transcript;
         }
+      }
     }
-    document.querySelector('#fastT').textContent = interim_transcript
   };
+  
 }
 
 function upgrade() {
