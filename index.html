@@ -1,11 +1,9 @@
 
-
 <!DOCTYPE html>
 <html class="no-js consumer" lang="en">
   <head>
-    <meta http-equiv="permissions-policy" content="interest-cohort=()">
-    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0/auth0-spa-js.production.js"></script>
-    <script>
+
+    <script nonce="gw-L_s8Doz-GXwNR1uj2sA">
 (function(e, p){
     var m = location.href.match(/platform=(win8|win|mac|linux|cros)/);
     e.id = (m && m[1]) ||
@@ -13,11 +11,26 @@
     e.className = e.className.replace(/\bno-js\b/,'js');
   })(document.documentElement, window.navigator.userAgent)
     </script>
-
+    <meta charset="utf-8">
+    <meta content="initial-scale=1, minimum-scale=1, width=device-width" name="viewport">
+    <meta content=
+    "Google Chrome is a browser that combines a minimal design with sophisticated technology to make the web faster, safer, and easier."
+    name="description">
     <title>
       Chrome Browser
     </title>
-
+    <link href="https://plus.google.com/100585555255542998765" rel="publisher">
+    <link href="//www.google.com/images/icons/product/chrome-32.png" rel="icon" type="image/ico">
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&amp;subset=latin" rel=
+    "stylesheet" nonce="gw-L_s8Doz-GXwNR1uj2sA">
+    <link href="/intl/en/chrome/assets/common/css/chrome.min.css" rel="stylesheet" nonce="gw-L_s8Doz-GXwNR1uj2sA">
+    <script src="//www.google.com/js/gweb/analytics/autotrack.js" nonce="gw-L_s8Doz-GXwNR1uj2sA">
+</script>
+    <script nonce="gw-L_s8Doz-GXwNR1uj2sA">
+new gweb.analytics.AutoTrack({
+          profile: 'UA-26908291-1'
+        });
+    </script>
     <style>
 #info {
     font-size: 20px;
@@ -54,24 +67,11 @@
     .marquee {
     margin: 20px auto;
     }
+
     #buttons {
-        margin: 10px 0;
-    }
-
-    .button {
-        display: inline-block;
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #4CAF50;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-right: 10px;
-    }
-
-    .button:hover {
-        background-color: #45a049;
+    margin: 10px 0;
+    position: relative;
+    top: -50px;
     }
 
     #copy {
@@ -88,13 +88,12 @@ a.c1 {font-weight: normal;}
     </style>
   </head>
   <body class="" id="grid">
-    <p id="fastT"></p>
-    <p id="longT"></p>
     <div class="browser-landing" id="main">
       <div class="compact marquee-stacked" id="marquee">
         <div class="marquee-copy">
           <h1>
-             CamSub version beta
+            <a class="c1" href="http://dvcs.w3.org/hg/speech-api/raw-file/tip/speechapi.html">Web
+            Speech API</a> Demonstration
           </h1>
         </div>
       </div>
@@ -132,11 +131,12 @@ a.c1 {font-weight: normal;}
           </p>
         </div>
         <div id="div_start">
-          <button id="start_button" onclick="startButton(event)"><img alt="Start" id="start_img"></button>
+          <button id="start_button" onclick="startButton(event)"><img alt="Start" id="start_img"
+          src="/intl/en/chrome/assets/common/images/content/mic.gif"></button>
         </div>
         <div id="results">
-          <span class="final" id="final_span"></span> 
-          <span class="interim" id="interim_span"></span>
+          <span class="final" id="final_span"></span> <span class="interim" id=
+          "interim_span"></span>
         </div>
         <div id="copy">
           <button class="button" id="copy_button" onclick="copyButton()">Copy and Paste</button>
@@ -147,8 +147,8 @@ a.c1 {font-weight: normal;}
             <p>
               (Command-C on Mac.)
             </p>
-          </div>
-          <button class="button" id="email_button" onclick="emailButton()">Create Email</button>
+          </div><button class="button" id="email_button" onclick="emailButton()">Create
+          Email</button>
           <div id="email_info">
             <p>
               Text sent to default email application.
@@ -157,37 +157,6 @@ a.c1 {font-weight: normal;}
               (See chrome://settings/handlers to change.)
             </p>
           </div>
-          <button class="button" id="french_Button" onclick="frenchButton()">French</button>
-          <div id="french">
-            <p>
-              To transcript in french
-            </p>
-            <p>
-              (See chrome://settings/handlers to change.)
-            </p>
-          </div>     
-          <button class="button" id="spain_Button" onclick="spainButton()">Spain</button>
-          <div id="spain">
-            <p>
-              To transcript in spain
-            </p>
-            <p>
-              (See chrome://settings/handlers to change.)
-            </p>
-          </div>          
-          <div class="compact marquee" id="div_language">
-            <label id="on_air">on_air</label>
-          </div>
-          <button class="button" id="us_Button" onclick="usButton()">US</button>
-          <div id="US">
-            <p>
-              To transcript in US
-            </p>
-            <p>
-              (See chrome://settings/handlers to change.)
-            </p>
-          </div>                    
-
         </div>
         <div class="compact marquee" id="div_language">
           <select id="select_language" onchange="updateCountry()">
@@ -195,9 +164,36 @@ a.c1 {font-weight: normal;}
             </select>
         </div>
       </div>
-    </div>
-    
-    <script>
+    </div><script src="/intl/en/chrome/assets/common/js/chrome.min.js" nonce="gw-L_s8Doz-GXwNR1uj2sA">
+</script> <script nonce="gw-L_s8Doz-GXwNR1uj2sA">
+var chrmMenuBar = new chrm.ui.MenuBar();
+      chrmMenuBar.decorate('nav');
+      var chrmLogo = new chrm.ui.Logo('logo');
+
+      var chrmscroll = new chrm.ui.SmoothScroll('scroll');
+      chrmscroll.init();
+
+
+
+  window.___gcfg = { lang: 'en' };
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = 'https://apis.google.com/js/plusone.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
+
+
+
+
+      var doubleTracker = new gweb.analytics.DoubleTrack('floodlight', {
+          src: 2542116,
+          type: 'clien612',
+          cat: 'chrom0'
+      });
+      doubleTracker.track();
+
+      doubleTracker.trackClass('doubletrack', true);
+    </script> <script nonce="gw-L_s8Doz-GXwNR1uj2sA">
 // If you modify this array, also update default language / dialect below.
 var langs =
 [['Afrikaans',       ['af-ZA']],
@@ -290,7 +286,7 @@ var langs =
                      ['ur-IN', 'بھارت']],
  ['Ελληνικά',         ['el-GR']],
  ['български',         ['bg-BG']],
- ['Pусский',          ['ru-RU']],
+ ['Русский',          ['ru-RU']],
  ['Српски',           ['sr-RS']],
  ['Українська',        ['uk-UA']],
  ['한국어',            ['ko-KR']],
@@ -306,9 +302,9 @@ for (var i = 0; i < langs.length; i++) {
   select_language.options[i] = new Option(langs[i][0], i);
 }
 // Set default language / dialect.
-select_language.selectedIndex = 11;
+select_language.selectedIndex = 10;
 updateCountry();
-select_dialect.selectedIndex = 3;
+select_dialect.selectedIndex = 11;
 showInfo('info_start');
 
 function updateCountry() {
@@ -334,19 +330,21 @@ if (!('webkitSpeechRecognition' in window)) {
   var recognition = new webkitSpeechRecognition();
   recognition.continuous = true;
   recognition.interimResults = true;
-  
 
   recognition.onstart = function() {
     recognizing = true;
     showInfo('info_speak_now');
+    start_img.src = '/intl/en/chrome/assets/common/images/content/mic-animate.gif';
   };
 
   recognition.onerror = function(event) {
     if (event.error == 'no-speech') {
+      start_img.src = '/intl/en/chrome/assets/common/images/content/mic.gif';
       showInfo('info_no_speech');
       ignore_onend = true;
     }
     if (event.error == 'audio-capture') {
+      start_img.src = '/intl/en/chrome/assets/common/images/content/mic.gif';
       showInfo('info_no_microphone');
       ignore_onend = true;
     }
@@ -361,8 +359,26 @@ if (!('webkitSpeechRecognition' in window)) {
   };
 
   recognition.onend = function() {
-    recognition.start()
-    spain_Button.style.visibility = "hidden";
+    recognizing = false;
+    if (ignore_onend) {
+      return;
+    }
+    start_img.src = '/intl/en/chrome/assets/common/images/content/mic.gif';
+    if (!final_transcript) {
+      showInfo('info_start');
+      return;
+    }
+    showInfo('');
+    if (window.getSelection) {
+      window.getSelection().removeAllRanges();
+      var range = document.createRange();
+      range.selectNode(document.getElementById('final_span'));
+      window.getSelection().addRange(range);
+    }
+    if (create_email) {
+      create_email = false;
+      createEmail();
+    }
   };
 
   recognition.onresult = function(event) {
@@ -375,26 +391,18 @@ if (!('webkitSpeechRecognition' in window)) {
     }
     for (var i = event.resultIndex; i < event.results.length; ++i) {
       if (event.results[i].isFinal) {
-        final_transcript = event.results[i][0].transcript; 
-        document.querySelector('#longT').textContent = final_transcript;
-        setTimeout(function() {
-          window.location.reload();
-        }, 100); 
+        final_transcript += event.results[i][0].transcript;
       } else {
         interim_transcript += event.results[i][0].transcript;
-        
-        var words = interim_transcript.split(' ');
-        if (words.length > 150) {
-          recognition.stop();
-        }
-        
-
-        document.querySelector('#fastT').textContent = interim_transcript;
-
       }
     }
+    final_transcript = capitalize(final_transcript);
+    final_span.innerHTML = linebreak(final_transcript);
+    interim_span.innerHTML = linebreak(interim_transcript);
+    if (final_transcript || interim_transcript) {
+      showButtons('inline-block');
+    }
   };
-  
 }
 
 function upgrade() {
@@ -413,57 +421,55 @@ function capitalize(s) {
   return s.replace(first_char, function(m) { return m.toUpperCase(); });
 }
 
+function createEmail() {
+  var n = final_transcript.indexOf('\n');
+  if (n < 0 || n >= 80) {
+    n = 40 + final_transcript.substring(40).indexOf(' ');
+  }
+  var subject = encodeURI(final_transcript.substring(0, n));
+  var body = encodeURI(final_transcript.substring(n + 1));
+  window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
+}
 
-function frenchButton(event) {
+function copyButton() {
+  if (recognizing) {
+    recognizing = false;
+    recognition.stop();
+  }
+  copy_button.style.display = 'none';
+  copy_info.style.display = 'inline-block';
+  showInfo('');
+}
+
+function emailButton() {
+  if (recognizing) {
+    create_email = true;
+    recognizing = false;
+    recognition.stop();
+  } else {
+    createEmail();
+  }
+  email_button.style.display = 'none';
+  email_info.style.display = 'inline-block';
+  showInfo('');
+}
+
+function startButton(event) {
   if (recognizing) {
     recognition.stop();
     return;
   }
-    // Set default language / dialect.
-    select_language.selectedIndex = 14;
-    updateCountry();
-    select_dialect.selectedIndex = 0;
+  final_transcript = '';
+  recognition.lang = select_dialect.value;
+  recognition.start();
+  ignore_onend = false;
+  final_span.innerHTML = '';
+  interim_span.innerHTML = '';
+  start_img.src = '/intl/en/chrome/assets/common/images/content/mic-slash.gif';
+  showInfo('info_allow');
+  showButtons('none');
+  start_timestamp = event.timeStamp;
 }
-
-function spainButton(event) {
-    if (recognizing) {
-      recognition.stop();
-      return;
-    }
-      // Set default language / dialect.
-      select_language.selectedIndex = 11;
-      updateCountry();
-      select_dialect.selectedIndex = 3;
-  }
-
-  function usButton(event) {
-    if (recognizing) {
-      recognition.stop();
-      return;
-    }
-      // Set default language / dialect.
-      select_language.selectedIndex = 10;
-      updateCountry();
-      select_dialect.selectedIndex = 11;
-  }  
-
-function startButton(event) {
-    if (recognizing) {
-      recognition.stop();
-      return;
-    }
-    final_transcript = '';
-    recognition.lang = select_dialect.value;
-    recognition.start();
-    ignore_onend = false;
-    final_span.innerHTML = '';
-    interim_span.innerHTML = '';
-    showInfo('info_allow');
-    showButtons('none');
-    start_timestamp = event.timeStamp;
-    spain_Button.style.visibility = "visible";
-  }
-
 
 function showInfo(s) {
   if (s) {
@@ -478,11 +484,6 @@ function showInfo(s) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  var button = document.querySelector('#start_button');
-  button.click();
-});
-
 var current_style;
 function showButtons(style) {
   if (style == current_style) {
@@ -491,8 +492,8 @@ function showButtons(style) {
   current_style = style;
   copy_button.style.display = style;
   email_button.style.display = style;
-  copy_info.style.display = style;
-  email_info.style.display = style;
+  copy_info.style.display = 'none';
+  email_info.style.display = 'none';
 }
     </script>
   </body>
