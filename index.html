@@ -101,6 +101,8 @@
      Upgrade to <a href="//www.google.com/chrome">Chrome</a>
      version 25 or later.</p>
 </div>
+<p id="fastT"></p>
+<p id="longT"></p>
 <div class="right">
   <button id="start_button" onclick="startButton(event)">
     <img id="start_img" src="mic.gif" alt="Start"></button>
@@ -285,14 +287,17 @@ if (!('webkitSpeechRecognition' in window)) {
     var interim_transcript = '';
     for (var i = event.resultIndex; i < event.results.length; ++i) {
       if (event.results[i].isFinal) {
-        final_transcript += event.results[i][0].transcript;
+        final_transcript = event.results[i][0].transcript;
+        document.querySelector('#fastT').textContent = final_transcript
+        final_transcript = capitalize(final_transcript);
+        document.querySelector('#longT').textContent = final_transcript
       } else {
         interim_transcript += event.results[i][0].transcript;
       }
     }
-    final_transcript = capitalize(final_transcript);
-    final_span.innerHTML = linebreak(final_transcript);
-    interim_span.innerHTML = linebreak(interim_transcript);
+    if (interim_transcript.split(' ').length % 4 === 0) {
+      document.querySelector('#fastT').textContent = interim_transcript
+    }
     if (final_transcript || interim_transcript) {
       showButtons('inline-block');
     }
@@ -359,6 +364,8 @@ function startButton(event) {
   ignore_onend = false;
   final_span.innerHTML = '';
   interim_span.innerHTML = '';
+  document.querySelector('#fastT').textContent = '';
+
   start_img.src = 'mic-slash.gif';
   showInfo('info_allow');
   showButtons('none');
