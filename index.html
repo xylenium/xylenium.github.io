@@ -289,6 +289,7 @@ if (!('webkitSpeechRecognition' in window)) {
       if (event.results[i].isFinal) {
         final_transcript = event.results[i][0].transcript;
         document.querySelector('#fastT').textContent = final_transcript
+        document.querySelector('#longT').textContent = final_transcript
       } else {
         interim_transcript += event.results[i][0].transcript;
       }
