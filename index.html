@@ -233,6 +233,11 @@ if (!('webkitSpeechRecognition' in window)) {
   recognition.interimResults = true;
 
   recognition.onstart = function() {
+  // Récupérer la valeur du cookie "langue"
+  var langue = document.cookie.replace(/(?:(?:^|.*;\s*)langue\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+  recognition.lang = langue
+
+  console.log(recognition.lang)
     recognizing = true;
     showInfo('info_speak_now');
     start_img.src = 'mic-animate.gif';
@@ -294,9 +299,9 @@ if (!('webkitSpeechRecognition' in window)) {
         interim_transcript += event.results[i][0].transcript;
       }
     }
-    if (interim_transcript.split(' ').length % 10 === 0) {
+    if (interim_transcript.split(' ').length % 7 === 0) {
       const words = interim_transcript.split(' ');
-      const lastFourWords = words.slice(-10).join(' ');
+      const lastFourWords = words.slice(-7).join(' ');
       document.querySelector('#fastT').textContent = lastFourWords;
     }
     if (final_transcript || interim_transcript) {
@@ -385,6 +390,11 @@ function showInfo(s) {
     info.style.visibility = 'hidden';
   }
 }
+
+window.onload = function() {
+  document.getElementById("start_button").click();
+}
+
 
 var current_style;
 function showButtons(style) {
