@@ -233,11 +233,14 @@ if (!('webkitSpeechRecognition' in window)) {
   recognition.interimResults = true;
 
   recognition.onstart = function() {
-  // Récupérer la valeur du cookie "langue"
-  var langue = document.cookie.replace(/(?:(?:^|.*;\s*)langue\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-  recognition.lang = langue
-
-  console.log(recognition.lang)
+  // Récupérer la valeur depuis sessionStorage
+  var nouvelleLangue = sessionStorage.getItem('maValeur');
+  
+  // Vérifier si une nouvelle langue a été définie
+  if (nouvelleLangue) {
+      // Mettre à jour la variable recognition.lang avec la nouvelle langue
+      recognition.lang = nouvelleLangue;
+    }
     recognizing = true;
     showInfo('info_speak_now');
     start_img.src = 'mic-animate.gif';
