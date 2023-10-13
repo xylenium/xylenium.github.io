@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+  </head>
+  <body>
+    <p id="status">Non connecté</p>
+    <p id="transcript"></p>
+    <script>
+      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+        console.log({ stream })
+        if (!MediaRecorder.isTypeSupported('audio/webm'))
+          return alert('Navigateur non pris en charge')
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm',
+        })
+        const socket = new WebSocket('wss://api.deepgram.com/v1/listen?model=nova&language=es&punctuate=true', [
+        //const socket = new WebSocket('wss://api.deepgram.com/v1/listen?smart_format=true&punctuate=true&language=fr&tier=nova&model=OPTION', [
+          'token',
+          'eb6334b9e71a09fd592d585db73ff638efbcb6f0',
+        ])
+        socket.onopen = () => {
+          document.querySelector('#status').textContent = 'Connecté'
+          console.log({ event: 'onopen' })
+          mediaRecorder.addEventListener('dataavailable', async (event) => {
+            if (event.data.size > 0 && socket.readyState == 1) {
+              socket.send(event.data)
+            }
+          })
+          mediaRecorder.start(1000)
+        }
+
+        socket.onmessage = (message) => {
+          const received = JSON.parse(message.data)
+          const transcript = received.channel.alternatives[0].transcript
+          if (transcript && !received.is_final) {
+            console.log(transcript)
+            document.querySelector('#transcript').textContent +=
+              transcript + ' '
+          } else if (transcript && received.is_final) {
+            console.log(transcript)
+            document.querySelector('#transcript').textContent +=
+              transcript + ' '
+            document.querySelector('#transcript').innerHTML += '<br>'
+          }
+        }
+
+        socket.onclose = () => {
+          console.log({ event: 'onclose' })
+        }
+
+        socket.onerror = (error) => {
+          console.log({ event: 'onerror', error })
+        }
+      })
+    </script>
+  </body>
+</html>
