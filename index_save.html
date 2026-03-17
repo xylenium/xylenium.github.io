@@ -1,1 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Speech Recognition — Version Moderne</title>
 
+<style>
+    body {
+        font-family: system-ui, sans-serif;
+        margin: 40px;
+        background: #fafafa;
+    }
+    #container {
+        max-width: 800px;
+        margin: auto;
+    }
+    button {
+        padding: 12px 20px;
+        font-size: 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        background: #0a74ff;
+        color: white;
+    }
+    button.listening {
+        background: #ff3c3c;
+    }
+    #results {
+        padding: 15px;
+        margin-top: 20px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        min-height: 140px;
+    }
+    #fastT {
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 20px;
+    }
+    #longT {
+        margin-top: 8px;
+        color: #555;
+    }
+    #info {
+        margin-top: 15px;
+        color: #777;
+    }
+</style>
+</head>
+
+<body>
+<div id="container">
+
+    <h1>🎤 Reconnaissance Vocale (API Web Speech — version moderne)</h1>
+
+    <button id="startBtn">Démarrer l’écoute</button>
+
+    <div id="info"></div>
+
+    <div id="fastT"></div>
+    <div id="longT"></div>
+
+    <div id="results">
+        <div id="final" style="font-weight:bold;"></div>
+        <div id="interim" style="color:gray;"></div>
+    </div>
+
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   1) Vérification compatibilité
+───────────────────────────────────────────── */
+if (!("webkitSpeechRecognition" in window)) {
+    document.getElementById("info").innerHTML =
+        "⚠️ Votre navigateur ne supporte pas Web Speech API. Utilisez Chrome / Edge.";
+    throw new Error("API Speech non supportée");
+}
+
+/* ─────────────────────────────────────────────
+   2) Instanciation conforme au standard officiel
+───────────────────────────────────────────── */
+const recognition = new webkitSpeechRecognition();
+recognition.continuous = true;           // comme dans le standard officiel
+recognition.interimResults = true;
+
+/* Langue (ta logique personnalisée) */
+const storedLang = sessionStorage.getItem("maValeur");
+recognition.lang = storedLang || "es-CO";
+
+/* ─────────────────────────────────────────────
+   3) Références DOM
+───────────────────────────────────────────── */
+const startBtn = document.getElementById("startBtn");
+const finalDiv = document.getElementById("final");
+const interimDiv = document.getElementById("interim");
+const fastT = document.getElementById("fastT");
+const longT = document.getElementById("longT");
+const info = document.getElementById("info");
+
+let recognizing = false;
+let finalTranscript = "";
+
+/* ─────────────────────────────────────────────
+   4) Bouton Start/Stop
+───────────────────────────────────────────── */
+startBtn.addEventListener("click", () => {
+    if (!recognizing) recognition.start();
+    else recognition.stop();
+});
+
+/* ─────────────────────────────────────────────
+   5) Callbacks standard
+───────────────────────────────────────────── */
+recognition.onstart = () => {
+    recognizing = true;
+    startBtn.textContent = "Arrêter";
+    startBtn.classList.add("listening");
+    info.textContent = "🎙️ Parlez…";
+};
+
+recognition.onerror = (event) => {
+    let msg = "";
+    switch (event.error) {
+        case "no-speech": msg = "Aucune voix détectée."; break;
+        case "audio-capture": msg = "Aucun microphone trouvé."; break;
+        case "not-allowed": msg = "Permission refusée."; break;
+    }
+    info.textContent = "⚠️ " + msg;
+};
+
+recognition.onend = () => {
+    recognizing = false;
+    startBtn.textContent = "Démarrer l’écoute";
+    startBtn.classList.remove("listening");
+    info.textContent = "Cliquez pour recommencer.";
+};
+
+/* ─────────────────────────────────────────────
+   6) Gestion des résultats (standard officiel)
+───────────────────────────────────────────── */
+recognition.onresult = (event) => {
+    let interim = "";
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+
+        if (event.results[i].isFinal) {
+            finalTranscript = transcript;
+            finalDiv.textContent = finalTranscript;
+            longT.textContent = finalTranscript;
+        } else {
+            interim += transcript;
+        }
+    }
+
+    interimDiv.textContent = interim;
+
+    // Affichage rapide (logic de ton ancien script)
+    if (interim.trim() !== "") {
+        const words = interim.trim().split(/\s+/);
+        const lastWords = words.slice(-7).join(" ");
+        fastT.textContent = lastWords;
+    }
+};
+</script>
+
+</body>
+</html>
