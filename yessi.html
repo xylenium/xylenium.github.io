@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Yessi Translate - Premium Overlay</title>
+    <script src="https://unpkg.com/compromise"></script>
+    <script src="https://unpkg.com/compromise-fr"></script>
+    <style>
+        :root {
+            --yessi-accent: #00d2ff;
+            --yessi-bg: rgba(0, 0, 0, 0.3);
+            --yessi-text: #ffffff;
+            --fade-speed: 0.5s;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: transparent;
+            font-family: 'Inter', 'Roboto', 'Segoe UI', sans-serif;
+        }
+
+        /* --- WIDGET STATUS (CONFIDENCE DOT) --- */
+        #yessi-status {
+            position: fixed; top: 20px; right: 20px;
+            padding: 8px 15px; border-radius: 30px;
+            background: rgba(0, 0, 0, 0.5); color: white;
+            font-size: 11px; font-weight: bold; letter-spacing: 1px;
+            display: flex; align-items: center; gap: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease; z-index: 100;
+        }
+        .dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #ff4757; transition: all 0.2s ease;
+        }
+        .active-dot { background: var(--yessi-accent); box-shadow: 0 0 10px var(--yessi-accent); }
+
+        /* --- CONTENEUR DE SOUS-TITRES --- */
+        #subtitle-viewport {
+            position: absolute; bottom: 8vh; width: 100%;
+            display: flex; justify-content: center;
+        }
+
+        #subtitle-container {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 12px; max-width: 80%; transition: opacity 2s ease;
+        }
+
+        .subtitle-segment {
+            background: var(--yessi-bg);
+            backdrop-filter: blur(8px);
+            padding: 12px 25px; border-radius: 15px;
+            color: var(--yessi-text); font-size: 24px; font-weight: 500;
+            text-align: center; line-height: 1.4;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            border-left: 4px solid transparent;
+            animation: yessiIn 0.4s ease-out forwards;
+        }
+
+        /* LA MAGIE YESSI : Opacité dynamique Ligne 1 vs Ligne 2 */
+        .subtitle-segment:last-child {
+            opacity: 1; transform: scale(1);
+            border-left-color: var(--yessi-accent);
+        }
+
+        .subtitle-segment:not(:last-child) {
+            opacity: 0.4; transform: scale(0.92) translateY(-10px);
+            filter: blur(1px); font-size: 20px;
+        }
+
+        @keyframes yessiIn {
+            from { opacity: 0; transform: translateY(30px) rotateX(-20deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0); }
+        }
+
+        .fadeOut { opacity: 0 !important; transform: translateY(-20px) !important; }
+
+        /* Bouton Start (Invisible en stream, utile pour configurer) */
+        #start-overlay {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 20px 40px; background: var(--yessi-accent); color: white;
+            border: none; border-radius: 50px; font-weight: bold; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="yessi-status">
+        <div id="dot" class="dot"></div>
+        <span id="status-text">YESSI STANDBY</span>
+    </div>
+
+    <button id="start-overlay">ACTIVER YESSI TRANSLATE</button>
+
+    <div id="subtitle-viewport">
+        <div id="subtitle-container"></div>
+    </div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   CONFIG & MOTEUR YESSI
+───────────────────────────────────────────────────────────── */
+let globalStartTime = 0;
+const LATENCY_OFFSET = 450; 
+let subtitleQueue = [];
+let silenceTimer = null;
+
+// Initialisation NLP
+if (typeof nlp !== 'undefined' && typeof fr !== 'undefined') nlp.extend(fr);
+
+class YessiEngine {
+    constructor(onSegment) {
+        this.buffer = [];
+        this.onSegment = onSegment;
+        this.anchorTime = null;
+        this.noise = ['euh', 'hum', 'ben', 'bah', 'voilà', 'genre'];
+    }
+
+    push(text) {
+        if (!text.trim()) return;
+        if (this.buffer.length === 0) this.anchorTime = performance.now() - LATENCY_OFFSET;
+
+        // Anti-bégaiement
+        let clean = text.toLowerCase().replace(/\b(\w+)\s+\1\b/g, '$1');
+        clean.split(/\s+/).filter(t => t.length > 0).forEach(t => this.buffer.push(t));
+
+        this.analyze();
+    }
+
+    analyze() {
+        let doc = nlp(this.buffer.join(' '));
+        this.noise.forEach(n => doc.remove(n));
+        doc.numbers().toNumber();
+
+        // Segmentation si ponctuation ou longueur > 12 mots
+        if (doc.sentences().length > 1 || this.buffer.length > 12) {
+            let sentence = doc.sentences().first();
+            let rawText = sentence.text();
+
+            // Auto-Question
+            if (/^(pourquoi|comment|est|peux|veux|dis|who|what|how)/i.test(rawText) && !rawText.includes('?')) {
+                rawText += ' ?';
+            }
+
+            this.finalize(rawText);
+
+            const lastWord = sentence.terms().last().text().toLowerCase().replace(/[.?!,;]/g, '');
+            const idx = this.buffer.map(w => w.replace(/[.?!,;]/g, '')).lastIndexOf(lastWord);
+            if (idx !== -1) {
+                this.buffer.splice(0, idx + 1);
+                this.anchorTime = null;
+            }
+        }
+    }
+
+    finalize(text) {
+        let final = text.trim();
+        if (final.length < 2) return;
+        final = final.charAt(0).toUpperCase() + final.slice(1);
+        this.onSegment(final);
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   GESTION UI & AFFICHAGE
+───────────────────────────────────────────────────────────── */
+const container = document.getElementById('subtitle-container');
+const dot = document.getElementById('dot');
+const statusText = document.getElementById('status-text');
+
+function showSubtitle(text) {
+    resetSilenceTimer();
+    
+    // SMART SPLIT : Si trop long, on coupe en deux lignes
+    if (text.length > 50) {
+        const middle = Math.floor(text.length / 2);
+        const splitIdx = text.lastIndexOf(' ', middle);
+        if (splitIdx > 0) {
+            renderLine(text.substring(0, splitIdx));
+            setTimeout(() => renderLine(text.substring(splitIdx + 1)), 400);
+            return;
+        }
+    }
+    renderLine(text);
+}
+
+function renderLine(text) {
+    const id = Date.now();
+    const el = document.createElement('div');
+    el.className = 'subtitle-segment';
+    el.textContent = text;
+
+    subtitleQueue.push({ id, el });
+    
+    // Garder seulement les 2 dernières lignes (Spec UX Desktop)
+    if (subtitleQueue.length > 2) {
+        const old = subtitleQueue.shift();
+        old.el.classList.add('fadeOut');
+        setTimeout(() => old.el.remove(), 600);
+    }
+
+    container.appendChild(el);
+    container.style.opacity = "1";
+
+    // Durée de vie proportionnelle à la lecture
+    const duration = Math.max(3000, (text.length / 15) * 1000 + 1000);
+    setTimeout(() => removeLine(id), duration);
+}
+
+function removeLine(id) {
+    const idx = subtitleQueue.findIndex(s => s.id === id);
+    if (idx !== -1) {
+        subtitleQueue[idx].el.classList.add('fadeOut');
+        setTimeout(() => {
+            if(subtitleQueue[idx]) subtitleQueue[idx].el.remove();
+            subtitleQueue = subtitleQueue.filter(s => s.id !== id);
+        }, 600);
+    }
+}
+
+function resetSilenceTimer() {
+    clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+        container.style.opacity = "0";
+        setTimeout(() => { container.innerHTML = ''; subtitleQueue = []; }, 2000);
+    }, 5000);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ASR & INITIALISATION
+───────────────────────────────────────────────────────────── */
+const engine = new YessiEngine((text) => showSubtitle(text));
+const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
+recognition.continuous = true;
+recognition.interimResults = true;
+recognition.lang = "fr-FR";
+
+recognition.onresult = (event) => {
+    // Confidence Pulse
+    dot.classList.add('active-dot');
+    setTimeout(() => dot.classList.remove('active-dot'), 200);
+
+    let current = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        current += event.results[i][0].transcript;
+    }
+    
+    // On envoie au moteur pour traitement sémantique
+    engine.push(current.replace(this.lastProcessed || "", ""));
+    this.lastProcessed = current;
+    if (event.results[event.results.length-1].isFinal) this.lastProcessed = "";
+};
+
+document.getElementById('start-overlay').onclick = () => {
+    document.getElementById('start-overlay').style.display = 'none';
+    statusText.innerText = "YESSI ACTIVE";
+    dot.classList.add('active-dot');
+    recognition.start();
+};
+</script>
+</body>
+</html>
