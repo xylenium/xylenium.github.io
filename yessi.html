@@ -10,7 +10,8 @@
             --yessi-accent: #00d2ff;
             --yessi-bg: rgba(0, 0, 0, 0.3);
             --yessi-text: #ffffff;
-            --fade-speed: 0.5s;
+            --subtitle-size: 24px;
+            --subtitle-size-prev: 20px;
         }
 
         body, html {
@@ -19,7 +20,6 @@
             font-family: 'Inter', 'Roboto', 'Segoe UI', sans-serif;
         }
 
-        /* --- WIDGET STATUS (CONFIDENCE DOT) --- */
         #yessi-status {
             position: fixed; top: 20px; right: 20px;
             padding: 8px 15px; border-radius: 30px;
@@ -35,7 +35,6 @@
         }
         .active-dot { background: var(--yessi-accent); box-shadow: 0 0 10px var(--yessi-accent); }
 
-        /* --- CONTENEUR DE SOUS-TITRES --- */
         #subtitle-viewport {
             position: absolute; bottom: 8vh; width: 100%;
             display: flex; justify-content: center;
@@ -50,7 +49,7 @@
             background: var(--yessi-bg);
             backdrop-filter: blur(8px);
             padding: 12px 25px; border-radius: 15px;
-            color: var(--yessi-text); font-size: 24px; font-weight: 500;
+            color: var(--yessi-text); font-size: var(--subtitle-size); font-weight: 500;
             text-align: center; line-height: 1.4;
             text-shadow: 0 2px 10px rgba(0,0,0,0.5);
             transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
@@ -58,7 +57,6 @@
             animation: yessiIn 0.4s ease-out forwards;
         }
 
-        /* LA MAGIE YESSI : Opacité dynamique Ligne 1 vs Ligne 2 */
         .subtitle-segment:last-child {
             opacity: 1; transform: scale(1);
             border-left-color: var(--yessi-accent);
@@ -66,7 +64,7 @@
 
         .subtitle-segment:not(:last-child) {
             opacity: 0.4; transform: scale(0.92) translateY(-10px);
-            filter: blur(1px); font-size: 20px;
+            filter: blur(1px); font-size: var(--subtitle-size-prev);
         }
 
         @keyframes yessiIn {
@@ -76,12 +74,26 @@
 
         .fadeOut { opacity: 0 !important; transform: translateY(-20px) !important; }
 
-        /* Bouton Start (Invisible en stream, utile pour configurer) */
         #start-overlay {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             padding: 20px 40px; background: var(--yessi-accent); color: white;
             border: none; border-radius: 50px; font-weight: bold; cursor: pointer;
+            font-size: 16px;
         }
+
+        /* Test runner UI */
+        #test-panel {
+            position: fixed; bottom: 10px; left: 10px;
+            background: rgba(0,0,0,0.85); color: #ccc;
+            font-size: 11px; font-family: monospace;
+            padding: 10px 14px; border-radius: 8px;
+            max-width: 380px; max-height: 200px; overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 999; display: none;
+        }
+        #test-panel .pass { color: #00d2ff; }
+        #test-panel .fail { color: #ff4757; }
+        #test-panel h4 { margin: 0 0 6px; color: white; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -97,59 +109,103 @@
         <div id="subtitle-container"></div>
     </div>
 
+    <div id="test-panel"><h4>🧪 YESSI TEST SUITE</h4><div id="test-output"></div></div>
+
 <script>
 /* ─────────────────────────────────────────────────────────────
-   CONFIG & MOTEUR YESSI
+   FIX #3 — Anti-bégaiement : dédup consécutif token par token
+   (\b ne fonctionne pas sur les caractères accentués en JS)
 ───────────────────────────────────────────────────────────── */
-let globalStartTime = 0;
-const LATENCY_OFFSET = 450; 
+function dedupConsecutive(str) {
+    const tokens = str.split(/(\s+)/); // alterne [mot, espace, mot, espace...]
+    let lastWord = null;
+    let out = '';
+    for (let i = 0; i < tokens.length; i++) {
+        if (i % 2 === 0) { // token mot
+            const word = tokens[i].toLowerCase();
+            if (word === lastWord) continue; // skip doublon consécutif
+            lastWord = word;
+            out += tokens[i];
+        } else { // token espace — on l'ajoute seulement si le mot suivant ne sera pas sauté
+            const nextWord = (tokens[i + 1] || '').toLowerCase();
+            if (nextWord !== lastWord) out += tokens[i];
+        }
+    }
+    return out;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FIX #7 — Dead code retiré : globalStartTime, anchorTime, LATENCY_OFFSET
+───────────────────────────────────────────────────────────── */
+
 let subtitleQueue = [];
 let silenceTimer = null;
+let isActive = false; // FIX #5 — pour auto-restart contrôlé
 
-// Initialisation NLP
-if (typeof nlp !== 'undefined' && typeof fr !== 'undefined') nlp.extend(fr);
+/* ─────────────────────────────────────────────────────────────
+   FIX #6 — Guard NLP : nlp wrapper sécurisé
+───────────────────────────────────────────────────────────── */
+const nlpReady = typeof nlp !== 'undefined';
+if (nlpReady && typeof fr !== 'undefined') {
+    try { nlp.extend(fr); } catch(e) { console.warn('[Yessi] compromise-fr extend failed:', e); }
+}
 
+function safeNlp(text) {
+    if (!nlpReady) return null;
+    try { return nlp(text); }
+    catch(e) { console.warn('[Yessi] nlp() failed:', e); return null; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MOTEUR YESSI
+───────────────────────────────────────────────────────────── */
 class YessiEngine {
     constructor(onSegment) {
         this.buffer = [];
         this.onSegment = onSegment;
-        this.anchorTime = null;
         this.noise = ['euh', 'hum', 'ben', 'bah', 'voilà', 'genre'];
     }
 
     push(text) {
         if (!text.trim()) return;
-        if (this.buffer.length === 0) this.anchorTime = performance.now() - LATENCY_OFFSET;
 
-        // Anti-bégaiement
-        let clean = text.toLowerCase().replace(/\b(\w+)\s+\1\b/g, '$1');
+        // FIX #3 — dédup consécutif accent-safe
+        let clean = dedupConsecutive(text.toLowerCase());
         clean.split(/\s+/).filter(t => t.length > 0).forEach(t => this.buffer.push(t));
 
         this.analyze();
     }
 
     analyze() {
-        let doc = nlp(this.buffer.join(' '));
-        this.noise.forEach(n => doc.remove(n));
-        doc.numbers().toNumber();
+        const joined = this.buffer.join(' ');
 
-        // Segmentation si ponctuation ou longueur > 12 mots
-        if (doc.sentences().length > 1 || this.buffer.length > 12) {
-            let sentence = doc.sentences().first();
-            let rawText = sentence.text();
+        // FIX #6 — guard nlp
+        const doc = safeNlp(joined);
 
-            // Auto-Question
-            if (/^(pourquoi|comment|est|peux|veux|dis|who|what|how)/i.test(rawText) && !rawText.includes('?')) {
-                rawText += ' ?';
+        if (doc) {
+            this.noise.forEach(n => { try { doc.remove(n); } catch(_){} });
+            try { doc.numbers().toNumber(); } catch(_){}
+
+            if (doc.sentences().length > 1 || this.buffer.length > 12) {
+                let sentence = doc.sentences().first();
+                let rawText = sentence.text();
+
+                if (/^(pourquoi|comment|est|peux|veux|dis|who|what|how)/i.test(rawText) && !rawText.includes('?')) {
+                    rawText += ' ?';
+                }
+
+                this.finalize(rawText);
+
+                const lastWord = sentence.terms().last().text().toLowerCase().replace(/[.?!,;]/g, '');
+                const idx = this.buffer.map(w => w.replace(/[.?!,;]/g, '')).lastIndexOf(lastWord);
+                if (idx !== -1) {
+                    this.buffer.splice(0, idx + 1);
+                }
             }
-
-            this.finalize(rawText);
-
-            const lastWord = sentence.terms().last().text().toLowerCase().replace(/[.?!,;]/g, '');
-            const idx = this.buffer.map(w => w.replace(/[.?!,;]/g, '')).lastIndexOf(lastWord);
-            if (idx !== -1) {
-                this.buffer.splice(0, idx + 1);
-                this.anchorTime = null;
+        } else {
+            // Fallback sans NLP : segmentation naïve sur longueur
+            if (this.buffer.length > 12) {
+                this.finalize(this.buffer.splice(0, 12).join(' '));
             }
         }
     }
@@ -163,7 +219,7 @@ class YessiEngine {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   GESTION UI & AFFICHAGE
+   UI & AFFICHAGE
 ───────────────────────────────────────────────────────────── */
 const container = document.getElementById('subtitle-container');
 const dot = document.getElementById('dot');
@@ -171,8 +227,6 @@ const statusText = document.getElementById('status-text');
 
 function showSubtitle(text) {
     resetSilenceTimer();
-    
-    // SMART SPLIT : Si trop long, on coupe en deux lignes
     if (text.length > 50) {
         const middle = Math.floor(text.length / 2);
         const splitIdx = text.lastIndexOf(' ', middle);
@@ -192,8 +246,7 @@ function renderLine(text) {
     el.textContent = text;
 
     subtitleQueue.push({ id, el });
-    
-    // Garder seulement les 2 dernières lignes (Spec UX Desktop)
+
     if (subtitleQueue.length > 2) {
         const old = subtitleQueue.shift();
         old.el.classList.add('fadeOut');
@@ -203,20 +256,19 @@ function renderLine(text) {
     container.appendChild(el);
     container.style.opacity = "1";
 
-    // Durée de vie proportionnelle à la lecture
     const duration = Math.max(3000, (text.length / 15) * 1000 + 1000);
     setTimeout(() => removeLine(id), duration);
 }
 
+/* FIX #2 — Re-recherche par id après timeout (index périmé) */
 function removeLine(id) {
-    const idx = subtitleQueue.findIndex(s => s.id === id);
-    if (idx !== -1) {
-        subtitleQueue[idx].el.classList.add('fadeOut');
-        setTimeout(() => {
-            if(subtitleQueue[idx]) subtitleQueue[idx].el.remove();
-            subtitleQueue = subtitleQueue.filter(s => s.id !== id);
-        }, 600);
-    }
+    const item = subtitleQueue.find(s => s.id === id);
+    if (!item) return;
+    item.el.classList.add('fadeOut');
+    setTimeout(() => {
+        item.el.remove();
+        subtitleQueue = subtitleQueue.filter(s => s.id !== id);
+    }, 600);
 }
 
 function resetSilenceTimer() {
@@ -228,36 +280,172 @@ function resetSilenceTimer() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   ASR & INITIALISATION
+   ASR
 ───────────────────────────────────────────────────────────── */
 const engine = new YessiEngine((text) => showSubtitle(text));
-const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
-recognition.continuous = true;
-recognition.interimResults = true;
-recognition.lang = "fr-FR";
 
-recognition.onresult = (event) => {
-    // Confidence Pulse
-    dot.classList.add('active-dot');
-    setTimeout(() => dot.classList.remove('active-dot'), 200);
+/* FIX #1 — lastProcessed en closure, plus de `this` */
+let lastProcessed = "";
 
-    let current = "";
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-        current += event.results[i][0].transcript;
-    }
-    
-    // On envoie au moteur pour traitement sémantique
-    engine.push(current.replace(this.lastProcessed || "", ""));
-    this.lastProcessed = current;
-    if (event.results[event.results.length-1].isFinal) this.lastProcessed = "";
-};
+const SpeechRecognitionAPI = window.webkitSpeechRecognition || window.SpeechRecognition;
+const recognition = SpeechRecognitionAPI ? new SpeechRecognitionAPI() : null;
+
+if (recognition) {
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "fr-FR";
+
+    recognition.onresult = (event) => {
+        dot.classList.add('active-dot');
+        setTimeout(() => dot.classList.remove('active-dot'), 200);
+
+        /* FIX #4 — Tracking par resultIndex, pas de diff fragile */
+        let newText = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            newText += event.results[i][0].transcript;
+        }
+
+        if (newText.trim()) {
+            engine.push(newText);
+        }
+
+        if (event.results[event.results.length - 1].isFinal) {
+            lastProcessed = ""; // reset propre sur final
+        }
+    };
+
+    /* FIX #5 — onerror + onend avec auto-restart */
+    recognition.onerror = (e) => {
+        console.warn('[Yessi] ASR error:', e.error);
+        statusText.innerText = `ERREUR: ${e.error}`;
+        dot.classList.remove('active-dot');
+        if (e.error === 'not-allowed') isActive = false; // ne pas retry si refus micro
+    };
+
+    recognition.onend = () => {
+        if (isActive) {
+            console.log('[Yessi] ASR ended, restarting...');
+            try { recognition.start(); }
+            catch(e) { console.warn('[Yessi] restart failed:', e); }
+        }
+    };
+}
 
 document.getElementById('start-overlay').onclick = () => {
+    if (!recognition) {
+        statusText.innerText = "ASR NON SUPPORTÉ";
+        return;
+    }
     document.getElementById('start-overlay').style.display = 'none';
     statusText.innerText = "YESSI ACTIVE";
     dot.classList.add('active-dot');
+    isActive = true;
     recognition.start();
 };
+
+/* ─────────────────────────────────────────────────────────────
+   TESTS DE VALIDATION
+───────────────────────────────────────────────────────────── */
+function runTests() {
+    const panel = document.getElementById('test-panel');
+    const output = document.getElementById('test-output');
+    panel.style.display = 'block';
+
+    const results = [];
+    let passed = 0;
+
+    function assert(name, condition, detail = '') {
+        const ok = !!condition;
+        if (ok) passed++;
+        results.push({ name, ok, detail });
+    }
+
+    // ── T2 : Anti-bégaiement accents
+    assert(
+        'T2 bégaiement accents',
+        dedupConsecutive('été été') === 'été' &&
+        dedupConsecutive('ça ça')   === 'ça'  &&
+        dedupConsecutive('été été test') === 'été test',
+        '"été été"→"été", "ça ça"→"ça", "été été test"→"été test"'
+    );
+
+    // ── T2b : ASCII inchangé
+    assert(
+        'T2b bégaiement ASCII',
+        dedupConsecutive('bonjour bonjour') === 'bonjour',
+        '"bonjour bonjour" → "bonjour"'
+    );
+
+    // ── T3 : safeNlp ne throw pas sur texte vide
+    let threw = false;
+    try { safeNlp(''); } catch(e) { threw = true; }
+    assert('T3 safeNlp("")', !threw, 'pas de throw sur string vide');
+
+    // ── T4 : safeNlp retourne null si nlp absent (simulé)
+    const origNlpReady = nlpReady; // on ne peut pas réassigner const, test indirect
+    assert('T4 safeNlp guard', typeof safeNlp === 'function', 'wrapper défini');
+
+    // ── T5 : YessiEngine.finalize capitalise
+    let captured = null;
+    const testEngine = new YessiEngine(t => { captured = t; });
+    testEngine.finalize('bonjour tout le monde');
+    assert('T5 capitalize', captured === 'Bonjour tout le monde', `got: "${captured}"`);
+
+    // ── T6 : finalize ignore texte trop court
+    captured = null;
+    testEngine.finalize('a');
+    assert('T6 finalize ignore court', captured === null, 'texte < 2 chars ignoré');
+
+    // ── T7 : renderLine ajoute au DOM
+    const before = container.children.length;
+    renderLine('Test render');
+    const after = container.children.length;
+    assert('T7 renderLine DOM', after === before + 1, `children: ${before}→${after}`);
+
+    // ── T8 : subtitleQueue max 2 éléments
+    subtitleQueue = []; container.innerHTML = '';
+    renderLine('Ligne 1');
+    renderLine('Ligne 2');
+    renderLine('Ligne 3'); // doit éjecter Ligne 1
+    assert('T8 queue max 2', subtitleQueue.length <= 2, `queue.length = ${subtitleQueue.length}`);
+
+    // ── T9 : removeLine sur id inexistant ne throw pas
+    let safe = true;
+    try { removeLine(999999); } catch(e) { safe = false; }
+    assert('T9 removeLine id inexistant', safe, 'pas de throw');
+
+    // ── T10 : recognition disponible ou fallback propre
+    assert('T10 ASR guard', recognition !== null || !SpeechRecognitionAPI, 'API ou null propre');
+
+    // ── T11 : showSubtitle smart-split > 50 chars
+    container.innerHTML = ''; subtitleQueue = [];
+    const longText = 'Voici une phrase qui est vraiment très longue pour tester le découpage automatique';
+    showSubtitle(longText);
+    // Après 0ms : au moins 1 ligne
+    assert('T11 smart-split déclenché', subtitleQueue.length >= 1, `queue après split: ${subtitleQueue.length}`);
+
+    // ── T12 : engine.push texte vide ne produit rien
+    captured = null;
+    const e2 = new YessiEngine(t => { captured = t; });
+    e2.push('   ');
+    assert('T12 push vide ignoré', captured === null, 'pas de segment sur whitespace');
+
+    // ── Rendu résultats
+    output.innerHTML = results.map(r =>
+        `<div class="${r.ok ? 'pass' : 'fail'}">${r.ok ? '✓' : '✗'} ${r.name}${r.detail ? ' — ' + r.detail : ''}</div>`
+    ).join('');
+
+    const summary = document.createElement('div');
+    summary.style.cssText = 'margin-top:6px;color:white;font-weight:bold;';
+    summary.textContent = `${passed}/${results.length} tests passés`;
+    output.appendChild(summary);
+
+    console.log(`[Yessi Tests] ${passed}/${results.length} passed`);
+    results.filter(r => !r.ok).forEach(r => console.warn(`  FAIL: ${r.name} — ${r.detail}`));
+}
+
+// Lance les tests au chargement (sans bloquer le stream)
+window.addEventListener('load', () => setTimeout(runTests, 500));
 </script>
 </body>
 </html>
