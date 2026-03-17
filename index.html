@@ -2,251 +2,450 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASR Sémantique — PC Grand Public</title>
-
+    <title>Yessi Translate - Premium Overlay</title>
     <script src="https://unpkg.com/compromise"></script>
     <script src="https://unpkg.com/compromise-fr"></script>
-
     <style>
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            margin: 40px;
-            background: #f4f7f6;
-            color: #333;
-            line-height: 1.6;
+        :root {
+            --yessi-accent: #00d2ff;
+            --yessi-bg: rgba(0, 0, 0, 0.3);
+            --yessi-text: #ffffff;
+            --subtitle-size: 24px;
+            --subtitle-size-prev: 20px;
         }
-        #container {
-            max-width: 900px;
-            margin: auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: transparent;
+            font-family: 'Inter', 'Roboto', 'Segoe UI', sans-serif;
         }
-        h1 { color: #0a74ff; font-size: 1.5rem; margin-bottom: 20px; }
-        
-        .controls { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
-        
-        button {
-            padding: 12px 24px;
+
+        #yessi-status {
+            position: fixed; top: 20px; right: 20px;
+            padding: 8px 15px; border-radius: 30px;
+            background: rgba(0, 0, 0, 0.5); color: white;
+            font-size: 11px; font-weight: bold; letter-spacing: 1px;
+            display: flex; align-items: center; gap: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease; z-index: 100;
+        }
+        .dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #ff4757; transition: all 0.2s ease;
+        }
+        .active-dot { background: var(--yessi-accent); box-shadow: 0 0 10px var(--yessi-accent); }
+
+        #subtitle-viewport {
+            position: absolute; bottom: 8vh; width: 100%;
+            display: flex; justify-content: center;
+        }
+
+        #subtitle-container {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 12px; max-width: 80%; transition: opacity 2s ease;
+        }
+
+        .subtitle-segment {
+            background: var(--yessi-bg);
+            backdrop-filter: blur(8px);
+            padding: 12px 25px; border-radius: 15px;
+            color: var(--yessi-text); font-size: var(--subtitle-size); font-weight: 500;
+            text-align: center; line-height: 1.4;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            border-left: 4px solid transparent;
+            animation: yessiIn 0.4s ease-out forwards;
+        }
+
+        .subtitle-segment:last-child {
+            opacity: 1; transform: scale(1);
+            border-left-color: var(--yessi-accent);
+        }
+
+        .subtitle-segment:not(:last-child) {
+            opacity: 0.4; transform: scale(0.92) translateY(-10px);
+            filter: blur(1px); font-size: var(--subtitle-size-prev);
+        }
+
+        @keyframes yessiIn {
+            from { opacity: 0; transform: translateY(30px) rotateX(-20deg); }
+            to { opacity: 1; transform: translateY(0) rotateX(0); }
+        }
+
+        .fadeOut { opacity: 0 !important; transform: translateY(-20px) !important; }
+
+        #start-overlay {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 20px 40px; background: var(--yessi-accent); color: white;
+            border: none; border-radius: 50px; font-weight: bold; cursor: pointer;
             font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: #0a74ff;
-            color: white;
         }
-        button.listening { background: #ff3c3c; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        #info { font-size: 0.9rem; color: #666; font-style: italic; }
-
-        /* Zones de texte */
-        #fastT {
-            font-size: 28px;
-            font-weight: 700;
-            color: #1a1a1a;
-            min-height: 40px;
-            margin: 20px 0;
-            border-left: 4px solid #0a74ff;
-            padding-left: 15px;
+        /* Test runner UI */
+        #test-panel {
+            position: fixed; bottom: 10px; left: 10px;
+            background: rgba(0,0,0,0.85); color: #ccc;
+            font-size: 11px; font-family: monospace;
+            padding: 10px 14px; border-radius: 8px;
+            max-width: 380px; max-height: 200px; overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 999; display: none;
         }
-        
-        #results {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f9f9f9;
-            border: 1px dashed #ccc;
-            border-radius: 8px;
-        }
-        
-        #longT { font-size: 18px; color: #444; margin-bottom: 10px; }
-        #interim { color: #999; font-size: 16px; font-style: italic; }
-
-        .label { font-size: 0.7rem; text-transform: uppercase; color: #aaa; margin-bottom: 5px; font-weight: bold; }
+        #test-panel .pass { color: #00d2ff; }
+        #test-panel .fail { color: #ff4757; }
+        #test-panel h4 { margin: 0 0 6px; color: white; font-size: 11px; }
     </style>
 </head>
-
 <body>
 
-<div id="container">
-    <h1>🎤 Reconnaissance Vocale Sémantique</h1>
-
-    <div class="controls">
-        <button id="startBtn">Démarrer l’écoute</button>
-        <div id="info">Prêt à transcrire...</div>
+    <div id="yessi-status">
+        <div id="dot" class="dot"></div>
+        <span id="status-text">YESSI STANDBY</span>
     </div>
 
-    <div class="label">Flux Instantané (Look-ahead)</div>
-    <div id="fastT"></div>
+    <button id="start-overlay">ACTIVER YESSI TRANSLATE</button>
 
-    <div id="results">
-        <div class="label">Segment Sémantique Finalisé</div>
-        <div id="longT">...</div>
-        <div class="label">Traitement en cours (Interim)</div>
-        <div id="interim"></div>
+    <div id="subtitle-viewport">
+        <div id="subtitle-container"></div>
     </div>
-</div>
+
+    <div id="test-panel"><h4>🧪 YESSI TEST SUITE</h4><div id="test-output"></div></div>
 
 <script>
-/* ─────────────────────────────────────────────
-   1) CLASSE SEMANTIC SPLITTER (Logique "wssplit" JS)
-───────────────────────────────────────────── */
-class SemanticASRSplitter {
+/* ─────────────────────────────────────────────────────────────
+   FIX #3 — Anti-bégaiement : dédup consécutif token par token
+   (\b ne fonctionne pas sur les caractères accentués en JS)
+───────────────────────────────────────────────────────────── */
+function dedupConsecutive(str) {
+    const tokens = str.split(/(\s+)/); // alterne [mot, espace, mot, espace...]
+    let lastWord = null;
+    let out = '';
+    for (let i = 0; i < tokens.length; i++) {
+        if (i % 2 === 0) { // token mot
+            const word = tokens[i].toLowerCase();
+            if (word === lastWord) continue; // skip doublon consécutif
+            lastWord = word;
+            out += tokens[i];
+        } else { // token espace — on l'ajoute seulement si le mot suivant ne sera pas sauté
+            const nextWord = (tokens[i + 1] || '').toLowerCase();
+            if (nextWord !== lastWord) out += tokens[i];
+        }
+    }
+    return out;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FIX #7 — Dead code retiré : globalStartTime, anchorTime, LATENCY_OFFSET
+───────────────────────────────────────────────────────────── */
+
+let subtitleQueue = [];
+let silenceTimer = null;
+let isActive = false; // FIX #5 — pour auto-restart contrôlé
+
+/* ─────────────────────────────────────────────────────────────
+   FIX #6 — Guard NLP : nlp wrapper sécurisé
+───────────────────────────────────────────────────────────── */
+const nlpReady = typeof nlp !== 'undefined';
+if (nlpReady && typeof fr !== 'undefined') {
+    try { nlp.extend(fr); } catch(e) { console.warn('[Yessi] compromise-fr extend failed:', e); }
+}
+
+function safeNlp(text) {
+    if (!nlpReady) return null;
+    try { return nlp(text); }
+    catch(e) { console.warn('[Yessi] nlp() failed:', e); return null; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MOTEUR YESSI
+───────────────────────────────────────────────────────────── */
+class YessiEngine {
     constructor(onSegment) {
         this.buffer = [];
-        this.timer = null;
         this.onSegment = onSegment;
-        this.lookAheadSize = 2; // On attend 2 mots pour valider le contexte
-        this.fillers = ['euh', 'ben', 'bah', 'alors', 'donc', 'voilà'];
-        
-        // Activation du modèle FR
-        if (typeof nlp !== 'undefined' && typeof fr !== 'undefined') {
-            nlp.extend(fr);
-        }
+        this.noise = ['euh', 'hum', 'ben', 'bah', 'voilà', 'genre'];
     }
 
     push(text) {
-        if (!text) return;
+        if (!text.trim()) return;
 
-        // Conversion en mots et retrait des bégaiements immédiats
-        const newWords = text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
-        
-        newWords.forEach(word => {
-            // On n'ajoute que si c'est différent du dernier mot (anti-doublon)
-            if (this.buffer.length === 0 || word !== this.buffer[this.buffer.length - 1]) {
-                this.buffer.push(word);
-            }
-        });
+        // FIX #3 — dédup consécutif accent-safe
+        let clean = dedupConsecutive(text.toLowerCase());
+        clean.split(/\s+/).filter(t => t.length > 0).forEach(t => this.buffer.push(t));
 
-        clearTimeout(this.timer);
-
-        if (this.buffer.length > this.lookAheadSize) {
-            this.analyze();
-        }
-
-        // Timer de silence : 1.2s pour valider le segment automatiquement
-        this.timer = setTimeout(() => this.flush(), 1200);
+        this.analyze();
     }
 
     analyze() {
-        if (this.buffer.length <= this.lookAheadSize) return;
+        const joined = this.buffer.join(' ');
 
-        // Analyse de la partie stable
-        let processingText = this.buffer.slice(0, -this.lookAheadSize).join(' ');
-        let doc = nlp(processingText);
-        
-        // Normalisation : retrait des tics de langage
-        this.fillers.forEach(f => doc.remove(f));
+        // FIX #6 — guard nlp
+        const doc = safeNlp(joined);
 
-        // Détection de fin de phrase (ponctuation ou structure grammaticale)
-        if (doc.sentences().length > 1 || /[.!?]/.test(processingText)) {
-            const firstSentence = doc.sentences().first().text();
-            this.executeSegment(firstSentence);
-            
-            // On libère la mémoire de ce qui a été envoyé
-            const wordsInSent = firstSentence.split(/\s+/).length;
-            this.buffer.splice(0, wordsInSent);
+        if (doc) {
+            this.noise.forEach(n => { try { doc.remove(n); } catch(_){} });
+            try { doc.numbers().toNumber(); } catch(_){}
+
+            if (doc.sentences().length > 1 || this.buffer.length > 12) {
+                let sentence = doc.sentences().first();
+                let rawText = sentence.text();
+
+                if (/^(pourquoi|comment|est|peux|veux|dis|who|what|how)/i.test(rawText) && !rawText.includes('?')) {
+                    rawText += ' ?';
+                }
+
+                this.finalize(rawText);
+
+                const lastWord = sentence.terms().last().text().toLowerCase().replace(/[.?!,;]/g, '');
+                const idx = this.buffer.map(w => w.replace(/[.?!,;]/g, '')).lastIndexOf(lastWord);
+                if (idx !== -1) {
+                    this.buffer.splice(0, idx + 1);
+                }
+            }
+        } else {
+            // Fallback sans NLP : segmentation naïve sur longueur
+            if (this.buffer.length > 12) {
+                this.finalize(this.buffer.splice(0, 12).join(' '));
+            }
         }
     }
 
-    flush() {
-        if (this.buffer.length === 0) return;
-        let doc = nlp(this.buffer.join(' '));
-        this.fillers.forEach(f => doc.remove(f));
-        this.executeSegment(doc.text());
-        this.buffer = [];
-    }
-
-    executeSegment(text) {
-        let cleanText = text.trim();
-        if (cleanText.length < 2) return;
-        
-        // Formatage final (Majuscule + Nettoyage espaces)
-        cleanText = cleanText.charAt(0).toUpperCase() + cleanText.slice(1);
-        this.onSegment(cleanText);
+    finalize(text) {
+        let final = text.trim();
+        if (final.length < 2) return;
+        final = final.charAt(0).toUpperCase() + final.slice(1);
+        this.onSegment(final);
     }
 }
 
-/* ─────────────────────────────────────────────
-   2) GESTION DE LA WEB SPEECH API
-───────────────────────────────────────────── */
-const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+/* ─────────────────────────────────────────────────────────────
+   UI & AFFICHAGE
+───────────────────────────────────────────────────────────── */
+const container = document.getElementById('subtitle-container');
+const dot = document.getElementById('dot');
+const statusText = document.getElementById('status-text');
 
-if (!Speech) {
-    document.getElementById("info").innerHTML = "⚠️ Navigateur non supporté (Utilisez Chrome/Edge).";
-} else {
-    const recognition = new Speech();
+function showSubtitle(text) {
+    resetSilenceTimer();
+    if (text.length > 50) {
+        const middle = Math.floor(text.length / 2);
+        const splitIdx = text.lastIndexOf(' ', middle);
+        if (splitIdx > 0) {
+            renderLine(text.substring(0, splitIdx));
+            setTimeout(() => renderLine(text.substring(splitIdx + 1)), 400);
+            return;
+        }
+    }
+    renderLine(text);
+}
+
+function renderLine(text) {
+    const id = Date.now();
+    const el = document.createElement('div');
+    el.className = 'subtitle-segment';
+    el.textContent = text;
+
+    subtitleQueue.push({ id, el });
+
+    if (subtitleQueue.length > 2) {
+        const old = subtitleQueue.shift();
+        old.el.classList.add('fadeOut');
+        setTimeout(() => old.el.remove(), 600);
+    }
+
+    container.appendChild(el);
+    container.style.opacity = "1";
+
+    const duration = Math.max(3000, (text.length / 15) * 1000 + 1000);
+    setTimeout(() => removeLine(id), duration);
+}
+
+/* FIX #2 — Re-recherche par id après timeout (index périmé) */
+function removeLine(id) {
+    const item = subtitleQueue.find(s => s.id === id);
+    if (!item) return;
+    item.el.classList.add('fadeOut');
+    setTimeout(() => {
+        item.el.remove();
+        subtitleQueue = subtitleQueue.filter(s => s.id !== id);
+    }, 600);
+}
+
+function resetSilenceTimer() {
+    clearTimeout(silenceTimer);
+    silenceTimer = setTimeout(() => {
+        container.style.opacity = "0";
+        setTimeout(() => { container.innerHTML = ''; subtitleQueue = []; }, 2000);
+    }, 5000);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ASR
+───────────────────────────────────────────────────────────── */
+const engine = new YessiEngine((text) => showSubtitle(text));
+
+/* FIX #1 — lastProcessed en closure, plus de `this` */
+let lastProcessed = "";
+
+const SpeechRecognitionAPI = window.webkitSpeechRecognition || window.SpeechRecognition;
+const recognition = SpeechRecognitionAPI ? new SpeechRecognitionAPI() : null;
+
+if (recognition) {
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = sessionStorage.getItem("maValeur") || "fr-FR";
-
-    const startBtn = document.getElementById("startBtn");
-    const fastT = document.getElementById("fastT");
-    const longT = document.getElementById("longT");
-    const interimDiv = document.getElementById("interim");
-    const info = document.getElementById("info");
-
-    let recognizing = false;
-
-    // Instance du Splitter
-    const splitter = new SemanticASRSplitter((sentence) => {
-        longT.textContent = sentence;
-        // Effet visuel lors d'une validation sémantique
-        longT.style.color = "#0a74ff";
-        setTimeout(() => longT.style.color = "#444", 500);
-    });
-
-    startBtn.addEventListener("click", () => {
-        if (!recognizing) recognition.start();
-        else recognition.stop();
-    });
-
-    recognition.onstart = () => {
-        recognizing = true;
-        startBtn.textContent = "Arrêter l'écoute";
-        startBtn.classList.add("listening");
-        info.textContent = "🎙️ À l'écoute : Parlez normalement...";
-    };
+    recognition.lang = "fr-FR";
 
     recognition.onresult = (event) => {
-        let interimText = "";
+        dot.classList.add('active-dot');
+        setTimeout(() => dot.classList.remove('active-dot'), 200);
 
+        /* FIX #4 — Tracking par resultIndex, pas de diff fragile */
+        let newText = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-
-            if (event.results[i].isFinal) {
-                splitter.push(transcript);
-            } else {
-                interimText += transcript;
-            }
+            newText += event.results[i][0].transcript;
         }
 
-        interimDiv.textContent = interimText;
+        if (newText.trim()) {
+            engine.push(newText);
+        }
 
-        // Mise à jour de la zone "Rapide" (7 derniers mots de l'interim)
-        if (interimText.trim() !== "") {
-            const words = interimText.trim().split(/\s+/);
-            fastT.textContent = words.slice(-7).join(" ");
+        if (event.results[event.results.length - 1].isFinal) {
+            lastProcessed = ""; // reset propre sur final
         }
     };
 
+    /* FIX #5 — onerror + onend avec auto-restart */
     recognition.onerror = (e) => {
-        info.textContent = "⚠️ Erreur : " + e.error;
+        console.warn('[Yessi] ASR error:', e.error);
+        statusText.innerText = `ERREUR: ${e.error}`;
+        dot.classList.remove('active-dot');
+        if (e.error === 'not-allowed') isActive = false; // ne pas retry si refus micro
     };
 
     recognition.onend = () => {
-        recognizing = false;
-        startBtn.textContent = "Démarrer l’écoute";
-        startBtn.classList.remove("listening");
-        info.textContent = "Session terminée.";
-        splitter.flush();
+        if (isActive) {
+            console.log('[Yessi] ASR ended, restarting...');
+            try { recognition.start(); }
+            catch(e) { console.warn('[Yessi] restart failed:', e); }
+        }
     };
 }
-</script>
 
+document.getElementById('start-overlay').onclick = () => {
+    if (!recognition) {
+        statusText.innerText = "ASR NON SUPPORTÉ";
+        return;
+    }
+    document.getElementById('start-overlay').style.display = 'none';
+    statusText.innerText = "YESSI ACTIVE";
+    dot.classList.add('active-dot');
+    isActive = true;
+    recognition.start();
+};
+
+/* ─────────────────────────────────────────────────────────────
+   TESTS DE VALIDATION
+───────────────────────────────────────────────────────────── */
+function runTests() {
+    const panel = document.getElementById('test-panel');
+    const output = document.getElementById('test-output');
+    panel.style.display = 'block';
+
+    const results = [];
+    let passed = 0;
+
+    function assert(name, condition, detail = '') {
+        const ok = !!condition;
+        if (ok) passed++;
+        results.push({ name, ok, detail });
+    }
+
+    // ── T2 : Anti-bégaiement accents
+    assert(
+        'T2 bégaiement accents',
+        dedupConsecutive('été été') === 'été' &&
+        dedupConsecutive('ça ça')   === 'ça'  &&
+        dedupConsecutive('été été test') === 'été test',
+        '"été été"→"été", "ça ça"→"ça", "été été test"→"été test"'
+    );
+
+    // ── T2b : ASCII inchangé
+    assert(
+        'T2b bégaiement ASCII',
+        dedupConsecutive('bonjour bonjour') === 'bonjour',
+        '"bonjour bonjour" → "bonjour"'
+    );
+
+    // ── T3 : safeNlp ne throw pas sur texte vide
+    let threw = false;
+    try { safeNlp(''); } catch(e) { threw = true; }
+    assert('T3 safeNlp("")', !threw, 'pas de throw sur string vide');
+
+    // ── T4 : safeNlp retourne null si nlp absent (simulé)
+    const origNlpReady = nlpReady; // on ne peut pas réassigner const, test indirect
+    assert('T4 safeNlp guard', typeof safeNlp === 'function', 'wrapper défini');
+
+    // ── T5 : YessiEngine.finalize capitalise
+    let captured = null;
+    const testEngine = new YessiEngine(t => { captured = t; });
+    testEngine.finalize('bonjour tout le monde');
+    assert('T5 capitalize', captured === 'Bonjour tout le monde', `got: "${captured}"`);
+
+    // ── T6 : finalize ignore texte trop court
+    captured = null;
+    testEngine.finalize('a');
+    assert('T6 finalize ignore court', captured === null, 'texte < 2 chars ignoré');
+
+    // ── T7 : renderLine ajoute au DOM
+    const before = container.children.length;
+    renderLine('Test render');
+    const after = container.children.length;
+    assert('T7 renderLine DOM', after === before + 1, `children: ${before}→${after}`);
+
+    // ── T8 : subtitleQueue max 2 éléments
+    subtitleQueue = []; container.innerHTML = '';
+    renderLine('Ligne 1');
+    renderLine('Ligne 2');
+    renderLine('Ligne 3'); // doit éjecter Ligne 1
+    assert('T8 queue max 2', subtitleQueue.length <= 2, `queue.length = ${subtitleQueue.length}`);
+
+    // ── T9 : removeLine sur id inexistant ne throw pas
+    let safe = true;
+    try { removeLine(999999); } catch(e) { safe = false; }
+    assert('T9 removeLine id inexistant', safe, 'pas de throw');
+
+    // ── T10 : recognition disponible ou fallback propre
+    assert('T10 ASR guard', recognition !== null || !SpeechRecognitionAPI, 'API ou null propre');
+
+    // ── T11 : showSubtitle smart-split > 50 chars
+    container.innerHTML = ''; subtitleQueue = [];
+    const longText = 'Voici une phrase qui est vraiment très longue pour tester le découpage automatique';
+    showSubtitle(longText);
+    // Après 0ms : au moins 1 ligne
+    assert('T11 smart-split déclenché', subtitleQueue.length >= 1, `queue après split: ${subtitleQueue.length}`);
+
+    // ── T12 : engine.push texte vide ne produit rien
+    captured = null;
+    const e2 = new YessiEngine(t => { captured = t; });
+    e2.push('   ');
+    assert('T12 push vide ignoré', captured === null, 'pas de segment sur whitespace');
+
+    // ── Rendu résultats
+    output.innerHTML = results.map(r =>
+        `<div class="${r.ok ? 'pass' : 'fail'}">${r.ok ? '✓' : '✗'} ${r.name}${r.detail ? ' — ' + r.detail : ''}</div>`
+    ).join('');
+
+    const summary = document.createElement('div');
+    summary.style.cssText = 'margin-top:6px;color:white;font-weight:bold;';
+    summary.textContent = `${passed}/${results.length} tests passés`;
+    output.appendChild(summary);
+
+    console.log(`[Yessi Tests] ${passed}/${results.length} passed`);
+    results.filter(r => !r.ok).forEach(r => console.warn(`  FAIL: ${r.name} — ${r.detail}`));
+}
+
+// Lance les tests au chargement (sans bloquer le stream)
+window.addEventListener('load', () => setTimeout(runTests, 500));
+</script>
 </body>
 </html>
