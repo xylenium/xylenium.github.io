@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASR Sémantique — PC Grand Public</title>
+
+    <script src="https://unpkg.com/compromise"></script>
+    <script src="https://unpkg.com/compromise-fr"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 40px;
+            background: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        #container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        h1 { color: #0a74ff; font-size: 1.5rem; margin-bottom: 20px; }
+        
+        .controls { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #0a74ff;
+            color: white;
+        }
+        button.listening { background: #ff3c3c; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        #info { font-size: 0.9rem; color: #666; font-style: italic; }
+
+        /* Zones de texte */
+        #fastT {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            min-height: 40px;
+            margin: 20px 0;
+            border-left: 4px solid #0a74ff;
+            padding-left: 15px;
+        }
+        
+        #results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+        }
+        
+        #longT { font-size: 18px; color: #444; margin-bottom: 10px; }
+        #interim { color: #999; font-size: 16px; font-style: italic; }
+
+        .label { font-size: 0.7rem; text-transform: uppercase; color: #aaa; margin-bottom: 5px; font-weight: bold; }
+    </style>
+</head>
+
+<body>
+
+<div id="container">
+    <h1>🎤 Reconnaissance Vocale Sémantique</h1>
+
+    <div class="controls">
+        <button id="startBtn">Démarrer l’écoute</button>
+        <div id="info">Prêt à transcrire...</div>
+    </div>
+
+    <div class="label">Flux Instantané (Look-ahead)</div>
+    <div id="fastT"></div>
+
+    <div id="results">
+        <div class="label">Segment Sémantique Finalisé</div>
+        <div id="longT">...</div>
+        <div class="label">Traitement en cours (Interim)</div>
+        <div id="interim"></div>
+    </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   1) CLASSE SEMANTIC SPLITTER (Logique "wssplit" JS)
+───────────────────────────────────────────── */
+class SemanticASRSplitter {
+    constructor(onSegment) {
+        this.buffer = [];
+        this.timer = null;
+        this.onSegment = onSegment;
+        this.lookAheadSize = 2; // On attend 2 mots pour valider le contexte
+        this.fillers = ['euh', 'ben', 'bah', 'alors', 'donc', 'voilà'];
+        
+        // Activation du modèle FR
+        if (typeof nlp !== 'undefined' && typeof fr !== 'undefined') {
+            nlp.extend(fr);
+        }
+    }
+
+    push(text) {
+        if (!text) return;
+
+        // Conversion en mots et retrait des bégaiements immédiats
+        const newWords = text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+        
+        newWords.forEach(word => {
+            // On n'ajoute que si c'est différent du dernier mot (anti-doublon)
+            if (this.buffer.length === 0 || word !== this.buffer[this.buffer.length - 1]) {
+                this.buffer.push(word);
+            }
+        });
+
+        clearTimeout(this.timer);
+
+        if (this.buffer.length > this.lookAheadSize) {
+            this.analyze();
+        }
+
+        // Timer de silence : 1.2s pour valider le segment automatiquement
+        this.timer = setTimeout(() => this.flush(), 1200);
+    }
+
+    analyze() {
+        if (this.buffer.length <= this.lookAheadSize) return;
+
+        // Analyse de la partie stable
+        let processingText = this.buffer.slice(0, -this.lookAheadSize).join(' ');
+        let doc = nlp(processingText);
+        
+        // Normalisation : retrait des tics de langage
+        this.fillers.forEach(f => doc.remove(f));
+
+        // Détection de fin de phrase (ponctuation ou structure grammaticale)
+        if (doc.sentences().length > 1 || /[.!?]/.test(processingText)) {
+            const firstSentence = doc.sentences().first().text();
+            this.executeSegment(firstSentence);
+            
+            // On libère la mémoire de ce qui a été envoyé
+            const wordsInSent = firstSentence.split(/\s+/).length;
+            this.buffer.splice(0, wordsInSent);
+        }
+    }
+
+    flush() {
+        if (this.buffer.length === 0) return;
+        let doc = nlp(this.buffer.join(' '));
+        this.fillers.forEach(f => doc.remove(f));
+        this.executeSegment(doc.text());
+        this.buffer = [];
+    }
+
+    executeSegment(text) {
+        let cleanText = text.trim();
+        if (cleanText.length < 2) return;
+        
+        // Formatage final (Majuscule + Nettoyage espaces)
+        cleanText = cleanText.charAt(0).toUpperCase() + cleanText.slice(1);
+        this.onSegment(cleanText);
+    }
+}
+
+/* ─────────────────────────────────────────────
+   2) GESTION DE LA WEB SPEECH API
+───────────────────────────────────────────── */
+const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!Speech) {
+    document.getElementById("info").innerHTML = "⚠️ Navigateur non supporté (Utilisez Chrome/Edge).";
+} else {
+    const recognition = new Speech();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = sessionStorage.getItem("maValeur") || "fr-FR";
+
+    const startBtn = document.getElementById("startBtn");
+    const fastT = document.getElementById("fastT");
+    const longT = document.getElementById("longT");
+    const interimDiv = document.getElementById("interim");
+    const info = document.getElementById("info");
+
+    let recognizing = false;
+
+    // Instance du Splitter
+    const splitter = new SemanticASRSplitter((sentence) => {
+        longT.textContent = sentence;
+        // Effet visuel lors d'une validation sémantique
+        longT.style.color = "#0a74ff";
+        setTimeout(() => longT.style.color = "#444", 500);
+    });
+
+    startBtn.addEventListener("click", () => {
+        if (!recognizing) recognition.start();
+        else recognition.stop();
+    });
+
+    recognition.onstart = () => {
+        recognizing = true;
+        startBtn.textContent = "Arrêter l'écoute";
+        startBtn.classList.add("listening");
+        info.textContent = "🎙️ À l'écoute : Parlez normalement...";
+    };
+
+    recognition.onresult = (event) => {
+        let interimText = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+
+            if (event.results[i].isFinal) {
+                splitter.push(transcript);
+            } else {
+                interimText += transcript;
+            }
+        }
+
+        interimDiv.textContent = interimText;
+
+        // Mise à jour de la zone "Rapide" (7 derniers mots de l'interim)
+        if (interimText.trim() !== "") {
+            const words = interimText.trim().split(/\s+/);
+            fastT.textContent = words.slice(-7).join(" ");
+        }
+    };
+
+    recognition.onerror = (e) => {
+        info.textContent = "⚠️ Erreur : " + e.error;
+    };
+
+    recognition.onend = () => {
+        recognizing = false;
+        startBtn.textContent = "Démarrer l’écoute";
+        startBtn.classList.remove("listening");
+        info.textContent = "Session terminée.";
+        splitter.flush();
+    };
+}
+</script>
+
+</body>
+</html>
